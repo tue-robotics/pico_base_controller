@@ -73,7 +73,6 @@ class OmniBase():
 			dt = (now - just).to_sec()
 
 			if self.vel and ref_t + ref_dt < now:
-				print "Send ref: {0}".format(now)
 				self.sendReference(self.vel)
 				self.vel = None
 				ref_t = now
