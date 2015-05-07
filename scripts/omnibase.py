@@ -16,8 +16,8 @@ from tf.transformations import numpy as np
 class OmniBase():
 	regex = re.compile('(-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+)')
 	ser = serial.Serial('/dev/ttyArduino0', 115200)
-	max_speed_linear  = 0.2
-	max_speed_angular = 1.0
+	max_speed_linear  = 0.5
+	max_speed_angular = 1.2
 	max_speed_error = 0.01 # speed may be 1% greater than the maximum
 
 	def velocityCallback(self, vel):
