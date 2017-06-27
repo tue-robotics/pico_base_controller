@@ -2,10 +2,12 @@
 import rospy
 import roslib; #roslib.load_manifest('pico_base_controller')
 import serial
+import emc_system
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
+from emc_system.msg import motorCurrent
 from math import sin, cos
 import re
 #from tf.broadcaster import TransformBroadcaster
@@ -14,7 +16,7 @@ from tf.transformations import vector_norm
 from tf.transformations import numpy as np
 
 class OmniBase():
-	regex = re.compile('(-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+)')
+	regex = re.compile('(-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+) (-?\d+\.\d+)')
 	ser = serial.Serial('/dev/ttyArduino0', 115200)
 	max_speed_linear  = 0.5
 	max_speed_angular = 1.2
@@ -46,7 +48,8 @@ class OmniBase():
 		rospy.Subscriber("cmd_vel", Twist, self.velocityCallback)
 		r = rospy.Rate(200.0) # 200hz
 
-		odomPub = rospy.Publisher('/pico/odom', Odometry)
+		odomPub = rospy.Publisher('/pico/odom', Odometry, queue_size=0) #queue_size: This is the size of the outgoing message queue used for asynchronous publishing. Please find more detailed information below in the section "Choosing a good queue_size" 
+		currentPub = rospy.Publisher('/pico/current', motorCurrent, queue_size=0) #queue_size: This
 		odomBroadcaster = tf.TransformBroadcaster()
 		#print "vel callback"
 		now = rospy.Time.now()
@@ -88,6 +91,10 @@ class OmniBase():
 				x_robot = float(result.group(1))
 				y_robot = float(result.group(2))
 				th_robot = float(result.group(3))
+
+				I_rightfront = float(result.group(4))
+				I_back       = float(result.group(5))
+				I_leftfront  = float(result.group(6))
 				
 				vx = (x_robot - x_robot_last)/dt
 				vy = (y_robot - y_robot_last)/dt
@@ -127,6 +134,14 @@ class OmniBase():
 				#print 'odom: %f %f %f' % (x, y, th)
 				#print odom
 				odomPub.publish(odom)
+
+				currentMsg = motorCurrent()
+				odom.header.frame_id = "/pico/current"
+				currentMsg.header.stamp = now
+				currentMsg.I_rightfront = I_rightfront
+				currentMsg.I_back = I_back
+				currentMsg.I_leftfront = I_leftfront
+				currentPub.publish(currentMsg)
 			r.sleep()
 
 if __name__ == '__main__':
