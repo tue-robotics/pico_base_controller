@@ -7,7 +7,7 @@ from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
-from emc_system.msg import motorCurrent
+from emc_system.msg import controlEffort
 from math import sin, cos
 import re
 #from tf.broadcaster import TransformBroadcaster
@@ -45,11 +45,11 @@ class OmniBase():
 	def __init__(self):
 		rospy.init_node("omni_base");
 
-		rospy.Subscriber("cmd_vel", Twist, self.velocityCallback)
+		rospy.Subscriber("/pico/cmd_vel", Twist, self.velocityCallback)
 		r = rospy.Rate(200.0) # 200hz
 
 		odomPub = rospy.Publisher('/pico/odom', Odometry, queue_size=0) #queue_size: This is the size of the outgoing message queue used for asynchronous publishing. Please find more detailed information below in the section "Choosing a good queue_size" 
-		currentPub = rospy.Publisher('/pico/current', motorCurrent, queue_size=0) #queue_size: This
+		currentPub = rospy.Publisher('/pico/controlEffort', controlEffort, queue_size=0) #queue_size: This
 		odomBroadcaster = tf.TransformBroadcaster()
 		#print "vel callback"
 		now = rospy.Time.now()
@@ -82,6 +82,7 @@ class OmniBase():
 
 			#print dt
 			s = self.ser.readline()
+			#print s
 			result = self.regex.match(s)
 			if result and dt > 0.0:
 				x_robot_last = x_robot
@@ -92,9 +93,9 @@ class OmniBase():
 				y_robot = float(result.group(2))
 				th_robot = float(result.group(3))
 
-				I_rightfront = float(result.group(4))
-				I_back       = float(result.group(5))
-				I_leftfront  = float(result.group(6))
+				I_x  = float(result.group(4))
+				I_y  = float(result.group(5))
+				I_th = float(result.group(6))
 				
 				vx = (x_robot - x_robot_last)/dt
 				vy = (y_robot - y_robot_last)/dt
@@ -135,12 +136,12 @@ class OmniBase():
 				#print odom
 				odomPub.publish(odom)
 
-				currentMsg = motorCurrent()
+				currentMsg = controlEffort()
 				odom.header.frame_id = "/pico/current"
 				currentMsg.header.stamp = now
-				currentMsg.I_rightfront = I_rightfront
-				currentMsg.I_back = I_back
-				currentMsg.I_leftfront = I_leftfront
+				currentMsg.I_x  = I_x
+				currentMsg.I_y  = I_y
+				currentMsg.I_th = I_th
 				currentPub.publish(currentMsg)
 			r.sleep()
 
